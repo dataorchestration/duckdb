@@ -85,12 +85,13 @@ if (EXTENSION_STATIC_BUILD AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 option(DISABLE_UNITY "Disable unity builds." FALSE)
+option(BUILD_ARROW_EXTENSION "Build the Arrow extension" ON)
 option(USE_WASM_THREADS "Should threads be used" FALSE)
 if (${USE_WASM_THREADS})
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
    set(WASM_THREAD_FLAGS
-       -pthread
+       -pthreads
        -sSHARED_MEMORY=1
    )
 endif()
@@ -1112,6 +1113,8 @@ foreach(DUCKDB_EXTENSION_CONFIG IN LISTS DUCKDB_EXTENSION_CONFIGS)
   endif()
 endforeach()
 
+
+
 # Local extension config
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/extension/extension_config_local.cmake)
   include(${CMAKE_CURRENT_SOURCE_DIR}/extension/extension_config_local.cmake)
@@ -1122,8 +1125,22 @@ if(BUILD_PYTHON)
   include(${CMAKE_CURRENT_SOURCE_DIR}/tools/pythonpkg/duckdb_extension_config.cmake)
 endif()
 
+if(BUILD_ARROW_EXTENSION)
+  duckdb_extension_load(arrow
+    DONT_LINK FALSE
+    DONT_BUILD FALSE
+  )
+  set(DUCKDB_EXTENSION_ARROW_SHOULD_LINK TRUE)
+  set(DUCKDB_EXTENSION_ARROW_SHOULD_BUILD TRUE)
+endif()
+
+
 # Load base extension config
 include(${CMAKE_CURRENT_SOURCE_DIR}/extension/extension_config.cmake)
+
+if(BUILD_ARROW_EXTENSION)
+  set(DUCKDB_EXTENSION_ARROW_STATIC TRUE)
+endif()
 
 # For extensions whose tests were loaded, but not linked into duckdb, we need to ensure they are registered to have
 # the sqllogictest "require" statement load the loadable extensions instead of the baked in static one
